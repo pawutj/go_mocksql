@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"log"
 
 	_ "github.com/go-sql-driver/mysql"
 )
@@ -10,30 +11,6 @@ type User struct {
 	ID   int
 	Name string
 	Age  int
-}
-
-func recordStats(db *sql.DB, userID, productID int64) (err error) {
-	tx, err := db.Begin()
-	if err != nil {
-		return
-	}
-
-	defer func() {
-		switch err {
-		case nil:
-			err = tx.Commit()
-		default:
-			tx.Rollback()
-		}
-	}()
-
-	if _, err = tx.Exec("UPDATE products SET views = views + 1"); err != nil {
-		return
-	}
-	if _, err = tx.Exec("INSERT INTO product_viewers (user_id, product_id) VALUES (?, ?)", userID, productID); err != nil {
-		return
-	}
-	return
 }
 
 func CreateUsers(db *sql.DB, user User) (User, error) {
@@ -67,18 +44,38 @@ func FindAllUsers(db *sql.DB) ([]User, error) {
 		result = append(result, user)
 	}
 	return result, nil
-
 }
 
-func main() {
-	// @NOTE: the real connection is not required for tests
-	db, err := sql.Open("mysql", "root@/blog")
-	if err != nil {
-		panic(err)
-	}
-	defer db.Close()
+func FindOneUser(db *sql.DB, id int) (User, error) {
+	result := User{}
 
-	if err = recordStats(db, 1 /*some user id*/, 5 /*some product id*/); err != nil {
-		panic(err)
+	stmt, err := db.Prepare("SELECT id, name, age FROM users where id=$1")
+	if err != nil {
+		log.Fatal("can'tprepare query one row statment", err)
+		return result, err
 	}
+
+	row := stmt.QueryRow(id)
+	err = row.Scan(&result.ID, &result.Name, &result.Age)
+
+	if err != nil {
+		log.Fatal("can't Scan row into variables", err)
+		return result, err
+	}
+
+	return result, nil
+
+}
+func CreateTable(db *sql.DB) error {
+	createTb := `
+	CREATE TABLE IF NOT EXISTS users ( id SERIAL PRIMARY KEY, name TEXT, age INT );
+	`
+
+	_, err := db.Exec(createTb)
+
+	if err != nil {
+		log.Fatal("can't create table", err)
+	}
+
+	return nil
 }
