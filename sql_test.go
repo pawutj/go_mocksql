@@ -8,12 +8,12 @@ import (
 )
 
 func TestCreateUser(t *testing.T) {
-	user := User{Name: "AnuchitO", Age: 19}
+	user := User{Name: "SomeUser", Age: 27}
 	db, mock, _ := sqlmock.New()
 
-	rows := sqlmock.NewRows([]string{"id", "name", "age"}).AddRow(0, "AnuchitO", 19)
+	rows := sqlmock.NewRows([]string{"id", "name", "age"}).AddRow(0, "SomeUser", 27)
 
-	mock.ExpectQuery("INSERT INTO users").WithArgs("AnuchitO", 19).WillReturnRows(rows)
+	mock.ExpectQuery("INSERT INTO users").WithArgs("SomeUser", 27).WillReturnRows(rows)
 
 	result, err := CreateUsers(db, user)
 	assert.Nil(t, err)
